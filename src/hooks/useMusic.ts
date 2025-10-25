@@ -61,11 +61,12 @@ export const useMusic = (userId: string): UseMusicReturn => {
         const refreshToken = localStorage.getItem('spotify_refresh_token');
         
         if (token) {
-          setSpotifyClient(new SpotifyClient(token, refreshToken || undefined));
+          const client = new SpotifyClient(token, refreshToken || undefined);
+          setSpotifyClient(client);
           
           // Try to get user's playlists
           try {
-            const playlists = await spotifyClient?.getPlaylists();
+            const playlists = await client.getPlaylists();
             console.log('User playlists:', playlists);
           } catch (err) {
             console.error('Failed to fetch playlists:', err);
