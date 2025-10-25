@@ -8,22 +8,17 @@ import { User } from '@/types';
 interface LayoutProps {
   children: React.ReactNode;
   user?: User | null;
-  onAuthChange?: (user: User | null) => void;
   className?: string;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ 
   children, 
   user, 
-  onAuthChange, 
   className = '' 
 }) => {
   return (
     <div className={`min-h-screen bg-gray-50 ${className}`}>
-      <Navbar 
-        user={user} 
-        onLogout={() => onAuthChange?.(null)} 
-      />
+      <Navbar user={user} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}

@@ -1,21 +1,15 @@
 // Landing page for LockIn
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain, Clock, Music, Eye, CheckCircle, ArrowRight, Play } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { AuthButton } from '@/components/AuthButton';
-import { User } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LandingPage() {
-  const [user, setUser] = useState<User | null>(null);
-
-  // TODO: Implement authentication state management
-  useEffect(() => {
-    // This will be replaced with actual Firebase auth state listener
-    console.log('Landing page loaded');
-  }, []);
+  const { user } = useAuth();
 
   const features = [
     {
@@ -54,7 +48,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <Layout user={user} onAuthChange={setUser}>
+    <Layout user={user}>
       {/* Hero Section */}
       <section className="text-center py-20">
         <motion.div
@@ -163,11 +157,7 @@ export default function LandingPage() {
                 Sign up for free and start your productivity journey today. 
                 No credit card required.
               </p>
-              <AuthButton 
-                user={user} 
-                onAuthChange={setUser}
-                className="w-full"
-              />
+              <AuthButton className="w-full" />
             </div>
           </div>
         </div>

@@ -12,11 +12,10 @@ interface NavbarProps {
     email: string;
     photoURL?: string;
   } | null;
-  onLogout?: () => void;
   className?: string;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }) => {
+export const Navbar: React.FC<NavbarProps> = ({ user, className = '' }) => {
   return (
     <nav className={`bg-white shadow-lg border-b border-gray-200 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -105,7 +104,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }
                       </a>
                       <hr className="my-1" />
                       <button
-                        onClick={onLogout}
+                        onClick={() => {/* AuthButton handles logout */}}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
                       >
                         <LogOut className="w-4 h-4" />
