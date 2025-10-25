@@ -22,8 +22,8 @@ import {
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePomodoroContext } from '@/contexts/PomodoroContext';
+import { useFocusContext } from '@/contexts/FocusContext';
 import { useTodoLocal } from '@/hooks/useTodoLocal';
-import { useFocus } from '@/hooks/useFocus';
 
 interface SessionHistory {
   id: string;
@@ -40,10 +40,18 @@ export default function AnalyticsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('week');
   const router = useRouter();
 
-  // Get data from existing hooks
+  // Get data from existing hooks and contexts
   const pomodoroContext = usePomodoroContext();
   const { todos, loading: todosLoading } = useTodoLocal(user?.id || 'demo-user');
-  const { focusScore, metrics, isTracking } = useFocus(user?.id || '');
+  const { 
+    focusScore, 
+    metrics, 
+    isTracking, 
+    startTracking, 
+    stopTracking, 
+    loading: focusLoading, 
+    error: focusError 
+  } = useFocusContext();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -90,7 +98,65 @@ export default function AnalyticsPage() {
     }
   }, [pomodoroContext.sessionCount, pomodoroContext.isFocus, pomodoroContext.settings, focusScore]);
 
-  // Calculate analytics from real data
+  // Helper functions for advanced analytics
+  const calculateFocusConsistency = (focusMetrics: any[]) => {
+    if (focusMetrics.length < 2) return 50; // Default moderate consistency
+    
+    const scores = focusMetrics.map(m => m.attentionScore);
+    const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    // Lower standard deviation = higher consistency
+    return Math.max(0, Math.min(100, 100 - (standardDeviation * 2)));
+  };
+
+  const analyzeAttentionPatterns = (focusMetrics: any[]) => {
+    const patterns = {
+      morningFocus: 0,
+      afternoonFocus: 0,
+      eveningFocus: 0,
+      peakHours: [] as number[],
+      lowEnergyHours: [] as number[]
+    };
+
+    const hourlyScores: { [hour: number]: number[] } = {};
+
+    focusMetrics.forEach(metric => {
+      const hour = metric.timestamp.getHours();
+      if (!hourlyScores[hour]) hourlyScores[hour] = [];
+      hourlyScores[hour].push(metric.attentionScore);
+    });
+
+    Object.entries(hourlyScores).forEach(([hour, scores]) => {
+      const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const hourNum = parseInt(hour);
+      
+      if (hourNum >= 6 && hourNum < 12) patterns.morningFocus += avgScore;
+      else if (hourNum >= 12 && hourNum < 18) patterns.afternoonFocus += avgScore;
+      else if (hourNum >= 18 && hourNum < 24) patterns.eveningFocus += avgScore;
+      
+      if (avgScore > 80) patterns.peakHours.push(hourNum);
+      if (avgScore < 50) patterns.lowEnergyHours.push(hourNum);
+    });
+
+    return patterns;
+  };
+
+  const calculateFocusTrend = (focusMetrics: any[]) => {
+    if (focusMetrics.length < 5) return 0; // Need sufficient data
+    
+    const sortedMetrics = [...focusMetrics].sort((a, b) => a.timestamp - b.timestamp);
+    const firstHalf = sortedMetrics.slice(0, Math.floor(sortedMetrics.length / 2));
+    const secondHalf = sortedMetrics.slice(Math.floor(sortedMetrics.length / 2));
+    
+    const firstAvg = firstHalf.reduce((sum, m) => sum + m.attentionScore, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, m) => sum + m.attentionScore, 0) / secondHalf.length;
+    
+    return secondAvg - firstAvg; // Positive = improving, negative = declining
+  };
+
+  // Calculate enhanced analytics from real data
   const analytics = useMemo(() => {
     const now = new Date();
     const periodStart = new Date();
@@ -116,13 +182,35 @@ export default function AnalyticsPage() {
       todo.createdAt >= periodStart
     );
 
-    // Calculate metrics
+    // Filter focus metrics by period
+    const periodFocusMetrics = metrics.filter(metric => 
+      metric.timestamp >= periodStart
+    );
+
+    // Calculate comprehensive metrics
     const focusSessions = periodSessions.filter(s => s.type === 'focus');
     const completedTodos = periodTodos.filter(t => t.completed);
     const totalFocusTime = focusSessions.reduce((sum, session) => sum + session.duration, 0);
-    const averageFocusScore = focusSessions.length > 0 
+    
+    // Enhanced focus score calculation using both sessions and real-time metrics
+    const sessionFocusScore = focusSessions.length > 0 
       ? focusSessions.reduce((sum, session) => sum + (session.focusScore || 0), 0) / focusSessions.length
       : 0;
+      
+    const metricsFocusScore = periodFocusMetrics.length > 0
+      ? periodFocusMetrics.reduce((sum, metric) => sum + metric.attentionScore, 0) / periodFocusMetrics.length
+      : 0;
+      
+    const averageFocusScore = periodFocusMetrics.length > 0 ? metricsFocusScore : sessionFocusScore;
+
+    // Calculate focus consistency (how stable focus levels are)
+    const focusConsistency = calculateFocusConsistency(periodFocusMetrics);
+    
+    // Calculate attention patterns
+    const attentionPatterns = analyzeAttentionPatterns(periodFocusMetrics);
+    
+    // Calculate focus improvement trend
+    const focusTrend = calculateFocusTrend(periodFocusMetrics);
     
     // Generate daily trends
     const dailyTrends = [];
@@ -155,9 +243,20 @@ export default function AnalyticsPage() {
       focusSessions,
       completedTodos,
       currentFocusScore: focusScore,
-      isCurrentlyTracking: isTracking
+      isCurrentlyTracking: isTracking,
+      // Enhanced focus metrics
+      focusConsistency: Math.round(focusConsistency),
+      attentionPatterns,
+      focusTrend: Math.round(focusTrend),
+      totalFocusMetrics: periodFocusMetrics.length,
+      eyeContactRate: periodFocusMetrics.length > 0 
+        ? Math.round((periodFocusMetrics.filter(m => m.eyeContact).length / periodFocusMetrics.length) * 100)
+        : 0,
+      averageDistractions: periodFocusMetrics.length > 0
+        ? Math.round(periodFocusMetrics.reduce((sum, m) => sum + m.distractions, 0) / periodFocusMetrics.length)
+        : 0
     };
-  }, [sessionHistory, todos, selectedPeriod, focusScore, isTracking]);
+  }, [sessionHistory, todos, selectedPeriod, focusScore, isTracking, metrics]);
 
   if (loading) {
     return (
@@ -309,6 +408,134 @@ export default function AnalyticsPage() {
           </div>
         </motion.div>
 
+        {/* Enhanced Focus Analytics */}
+        <motion.div
+          key={`enhanced-focus-${selectedPeriod}`}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        >
+          {/* Focus Consistency */}
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Focus Consistency</h3>
+                <p className="text-3xl font-bold">{analytics.focusConsistency}%</p>
+              </div>
+              <Activity className="w-8 h-8 text-white/80" />
+            </div>
+            <div className="text-indigo-100">
+              <p className="text-sm">
+                {analytics.focusConsistency > 80 ? 'Excellent stability' :
+                 analytics.focusConsistency > 60 ? 'Good consistency' :
+                 analytics.focusConsistency > 40 ? 'Moderate variation' :
+                 'High variability'}
+              </p>
+            </div>
+          </div>
+
+          {/* Focus Trend */}
+          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Focus Trend</h3>
+                <p className="text-3xl font-bold">
+                  {analytics.focusTrend > 0 ? '+' : ''}{analytics.focusTrend}%
+                </p>
+              </div>
+              <TrendingUp className={`w-8 h-8 ${analytics.focusTrend >= 0 ? 'text-white/80' : 'text-red-300 rotate-180'}`} />
+            </div>
+            <div className="text-emerald-100">
+              <p className="text-sm">
+                {analytics.focusTrend > 10 ? 'Strong improvement' :
+                 analytics.focusTrend > 0 ? 'Slight improvement' :
+                 analytics.focusTrend > -10 ? 'Slight decline' :
+                 'Needs attention'}
+              </p>
+            </div>
+          </div>
+
+          {/* Eye Contact Rate */}
+          <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Attention Rate</h3>
+                <p className="text-3xl font-bold">{analytics.eyeContactRate}%</p>
+              </div>
+              <Eye className="w-8 h-8 text-white/80" />
+            </div>
+            <div className="text-orange-100">
+              <p className="text-sm">
+                {analytics.totalFocusMetrics} tracking sessions • 
+                Avg {analytics.averageDistractions} distractions
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Focus Control Panel */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="bg-white rounded-lg shadow-lg p-6"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-800">Focus Tracking Controls</h2>
+            <div className="flex items-center space-x-2">
+              <div className={`w-3 h-3 rounded-full ${isTracking ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+              <span className="text-sm font-medium text-gray-600">
+                {isTracking ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-700">Current Session</h3>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-gray-600">Real-time Focus Score</span>
+                <span className="font-bold text-lg text-blue-600">{focusScore}%</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-gray-600">Status</span>
+                <span className={`font-medium ${isTracking ? 'text-green-600' : 'text-gray-500'}`}>
+                  {isTracking ? 'Tracking Active' : 'Not Tracking'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-700">Controls</h3>
+              <div className="space-y-3">
+                {!isTracking ? (
+                  <button
+                    onClick={startTracking}
+                    disabled={focusLoading}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  >
+                    {focusLoading ? 'Starting...' : 'Start Focus Tracking'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopTracking}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Stop Focus Tracking
+                  </button>
+                )}
+                
+                {focusError && (
+                  <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                    {focusError}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Daily Focus Trends */}
@@ -395,6 +622,109 @@ export default function AnalyticsPage() {
             </div>
           </motion.div>
         </div>
+
+        {/* Attention Patterns Analysis */}
+        {analytics.attentionPatterns && (
+          <motion.div
+            key={`attention-patterns-${selectedPeriod}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="bg-white rounded-lg shadow-lg p-6"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-800">Attention Patterns</h2>
+              <Clock className="w-6 h-6 text-purple-500" />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Time of Day Performance */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-700">Performance by Time</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Morning (6-12)</span>
+                    <div className="flex items-center">
+                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, analytics.attentionPatterns.morningFocus / 10)}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium">{Math.round(analytics.attentionPatterns.morningFocus / 10)}%</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Afternoon (12-18)</span>
+                    <div className="flex items-center">
+                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, analytics.attentionPatterns.afternoonFocus / 10)}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium">{Math.round(analytics.attentionPatterns.afternoonFocus / 10)}%</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Evening (18-24)</span>
+                    <div className="flex items-center">
+                      <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                        <div 
+                          className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, analytics.attentionPatterns.eveningFocus / 10)}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium">{Math.round(analytics.attentionPatterns.eveningFocus / 10)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Peak Performance Hours */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-700">Peak Hours</h3>
+                <div className="space-y-2">
+                  {analytics.attentionPatterns.peakHours.length > 0 ? (
+                    analytics.attentionPatterns.peakHours.slice(0, 3).map((hour: number) => (
+                      <div key={hour} className="flex items-center justify-between bg-green-50 p-2 rounded">
+                        <span className="text-sm text-green-700">
+                          {hour}:00 - {hour + 1}:00
+                        </span>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                          High Focus
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No peak hours identified yet</p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Low Energy Hours */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-700">Low Energy Hours</h3>
+                <div className="space-y-2">
+                  {analytics.attentionPatterns.lowEnergyHours.length > 0 ? (
+                    analytics.attentionPatterns.lowEnergyHours.slice(0, 3).map((hour: number) => (
+                      <div key={hour} className="flex items-center justify-between bg-red-50 p-2 rounded">
+                        <span className="text-sm text-red-700">
+                          {hour}:00 - {hour + 1}:00
+                        </span>
+                        <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                          Low Focus
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No low energy periods identified</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Current Status */}
         <motion.div

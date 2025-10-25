@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Brain, User, Settings, LogOut } from 'lucide-react';
 import { AuthButton } from './AuthButton';
 import { NavbarTimer } from './NavbarTimer';
+import { GlobalFocusStatus } from './GlobalFocusStatus';
 
 interface NavbarProps {
   user?: {
@@ -58,8 +59,10 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }
             <NavbarTimer />
           </div>
 
-          {/* User Menu */}
+          {/* Focus Status & User Menu */}
           <div className="flex items-center gap-4">
+            {/* Global Focus Status */}
+            <GlobalFocusStatus />
             {user ? (
               <div className="flex items-center gap-3">
                 {/* User Info */}

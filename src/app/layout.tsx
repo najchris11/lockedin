@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PomodoroProvider } from "@/contexts/PomodoroContext";
+import { FocusProvider } from "@/contexts/FocusContext";
 import { TimerNotificationProvider } from "@/components/TimerNotificationProvider";
 import { PerformanceMonitor } from "@/components/PerformanceMonitor";
 
@@ -33,10 +34,12 @@ export default function RootLayout({
       >
         <AuthProvider>
         <PomodoroProvider>
-          <TimerNotificationProvider>
-            {children}
-            
-          </TimerNotificationProvider>
+          <FocusProvider>
+            <TimerNotificationProvider>
+              {children}
+              
+            </TimerNotificationProvider>
+          </FocusProvider>
         </PomodoroProvider>
         </AuthProvider>
       </body>

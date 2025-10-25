@@ -1,10 +1,10 @@
 // FocusTracker component for webcam-based focus monitoring
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, CameraOff, Eye, EyeOff, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useFocus } from '@/hooks/useFocus';
+import { useFocusContext } from '@/contexts/FocusContext';
 
 interface FocusTrackerProps {
   userId: string;
@@ -20,13 +20,11 @@ export const FocusTracker: React.FC<FocusTrackerProps> = ({ userId, className = 
     metrics,
     loading,
     error
-  } = useFocus(userId);
+  } = useFocusContext();
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [showVideo, setShowVideo] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
 
-  // TODO: Implement webcam permission handling
+  // Check camera permission on mount
   useEffect(() => {
     const checkCameraPermission = async () => {
       try {
@@ -78,21 +76,15 @@ export const FocusTracker: React.FC<FocusTrackerProps> = ({ userId, className = 
     }
   };
 
-  // TODO: Implement recent metrics display
-  const recentMetrics = metrics.slice(-10).reverse();
+  // Display recent metrics
+  const recentMetrics = metrics.slice(-5).reverse();
 
   const handleStartTracking = async () => {
     try {
       await startTracking();
-      setShowVideo(true);
     } catch (err) {
       console.error('Failed to start tracking:', err);
     }
-  };
-
-  const handleStopTracking = () => {
-    stopTracking();
-    setShowVideo(false);
   };
 
   if (permissionDenied) {
@@ -192,7 +184,7 @@ export const FocusTracker: React.FC<FocusTrackerProps> = ({ userId, className = 
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={isTracking ? handleStopTracking : handleStartTracking}
+          onClick={isTracking ? stopTracking : handleStartTracking}
           disabled={loading}
           className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
             isTracking
@@ -214,31 +206,7 @@ export const FocusTracker: React.FC<FocusTrackerProps> = ({ userId, className = 
         </motion.button>
       </div>
 
-      {/* TODO: Implement video preview */}
-      <AnimatePresence>
-        {showVideo && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-6"
-          >
-            <div className="relative bg-gray-900 rounded-lg overflow-hidden">
-              <video
-                ref={videoRef}
-                className="w-full h-48 object-cover"
-                autoPlay
-                muted
-                playsInline
-              />
-              <div className="absolute top-2 right-2 flex items-center gap-1 text-white text-xs bg-black bg-opacity-50 px-2 py-1 rounded">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                Live
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Video preview removed - using behavioral tracking */}
 
       {/* TODO: Implement recent metrics */}
       <div className="space-y-4">
