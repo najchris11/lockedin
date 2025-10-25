@@ -24,8 +24,22 @@ export async function GET(req: NextRequest) {
     body,
   });
 
-  const data = await response.json();
+  let data: any;
+  if (!response.ok) {
+    // Try to parse error details from the response
+    let errorDetail = 'spotify_auth_failed';
+    try {
+      const errorData = await response.json();
+      if (errorData && errorData.error) {
+        errorDetail = encodeURIComponent(errorData.error_description || errorData.error);
+      }
+    } catch (e) {
+      // Ignore JSON parse errors, use default error
+    }
+    return NextResponse.redirect(`/?error=${errorDetail}`);
+  }
 
+  data = await response.json();
   if (data.access_token) {
     // Store token in cookies or redirect back to dashboard
     const res = NextResponse.redirect('/dashboard');
