@@ -106,6 +106,7 @@ export class SpotifyClient {
     if (typeof window !== "undefined" && window.localStorage) {
       localStorage.setItem('spotify_access_token', data.access_token);
     }
+  }
 
   // TODO: Implement playlist fetching
   async getPlaylists(): Promise<any[]> {
