@@ -99,12 +99,20 @@ export class SpotifyClient {
       }),
     });
 
+    if (!response.ok) {
+      throw new Error('Failed to refresh token');
+    }
+
     const data = await response.json();
     this.accessToken = data.access_token;
     
-    // Update stored token (only on client)
+    // Update stored tokens (only on client)
     if (typeof window !== "undefined" && window.localStorage) {
       localStorage.setItem('spotify_access_token', data.access_token);
+      if (data.refresh_token) {
+        localStorage.setItem('spotify_refresh_token', data.refresh_token);
+        this.refreshToken = data.refresh_token;
+      }
     }
   }
 

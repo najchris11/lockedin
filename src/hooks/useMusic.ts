@@ -1,7 +1,11 @@
 // Custom hook for music player functionality
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { UseMusicReturn, MusicTrack, MusicPlaylist } from '@/types';
 import { SpotifyClient, getSpotifyAuthUrl } from '@/lib/spotify';
+
+// Cache for Spotify data to reduce API calls
+const spotifyCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for Spotify data
 
 // TODO: Implement default focus playlists
 const DEFAULT_FOCUS_PLAYLISTS: MusicPlaylist[] = [
@@ -51,10 +55,16 @@ export const useMusic = (userId: string): UseMusicReturn => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [spotifyClient, setSpotifyClient] = useState<SpotifyClient | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const initializationRef = useRef(false);
 
-  // TODO: Implement Spotify authentication
+  // Optimized Spotify authentication with caching
   useEffect(() => {
     const initializeSpotify = async () => {
+      // Prevent multiple initializations
+      if (initializationRef.current) return;
+      initializationRef.current = true;
+
       try {
         // Check for existing Spotify token in localStorage
         const token = localStorage.getItem('spotify_access_token');
@@ -64,10 +74,19 @@ export const useMusic = (userId: string): UseMusicReturn => {
           const client = new SpotifyClient(token, refreshToken || undefined);
           setSpotifyClient(client);
           
-          // Try to get user's playlists
+          // Try to get user's playlists with caching
           try {
-            const playlists = await client.getPlaylists();
-            console.log('User playlists:', playlists);
+            const cacheKey = `playlists_${userId}`;
+            const cached = spotifyCache.get(cacheKey);
+            const now = Date.now();
+            
+            if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+              console.log('Using cached playlists');
+            } else {
+              const playlists = await client.getPlaylists();
+              spotifyCache.set(cacheKey, { data: playlists, timestamp: now });
+              console.log('User playlists:', playlists);
+            }
           } catch (err) {
             console.error('Failed to fetch playlists:', err);
           }
@@ -77,11 +96,13 @@ export const useMusic = (userId: string): UseMusicReturn => {
       } catch (err) {
         console.error('Error initializing Spotify:', err);
         setError('Failed to initialize music player');
+      } finally {
+        setIsInitialized(true);
       }
     };
 
     initializeSpotify();
-  }, []);
+  }, [userId]);
 
   // Implement play functionality
   const play = useCallback(async () => {
@@ -197,50 +218,50 @@ export const useMusic = (userId: string): UseMusicReturn => {
     }
   }, [spotifyClient, currentPlaylist, currentTrack]);
 
-  // Implement playlist selection
+  // Optimized playlist selection with caching
   const setPlaylist = useCallback(async (playlistId: string) => {
     try {
       setError(null);
       setLoading(true);
 
       if (spotifyClient) {
-        // Try to fetch user's playlists first
-        try {
-          const playlists = await spotifyClient.getPlaylists();
-          const userPlaylist = playlists.find(p => p.id === playlistId);
-          
-          if (userPlaylist) {
-            // Convert Spotify playlist to our format
-            const tracks = userPlaylist.tracks.items.map((item: any) => ({
-              id: item.track.id,
-              title: item.track.name,
-              artist: item.track.artists[0]?.name || 'Unknown Artist',
-              duration: Math.floor(item.track.duration_ms / 1000),
-              spotifyId: item.track.id
-            }));
+        // Check cache first
+        const cacheKey = `playlists_${userId}`;
+        const cached = spotifyCache.get(cacheKey);
+        const now = Date.now();
+        
+        let playlists;
+        if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+          playlists = cached.data;
+        } else {
+          playlists = await spotifyClient.getPlaylists();
+          spotifyCache.set(cacheKey, { data: playlists, timestamp: now });
+        }
 
-            const playlist: MusicPlaylist = {
-              id: userPlaylist.id,
-              name: userPlaylist.name,
-              description: userPlaylist.description,
-              isFocusPlaylist: true,
-              tracks
-            };
+        const userPlaylist = playlists.find((p: any) => p.id === playlistId);
+        
+        if (userPlaylist) {
+          // Convert Spotify playlist to our format
+          const tracks = userPlaylist.tracks.items.map((item: any) => ({
+            id: item.track.id,
+            title: item.track.name,
+            artist: item.track.artists[0]?.name || 'Unknown Artist',
+            duration: Math.floor(item.track.duration_ms / 1000),
+            spotifyId: item.track.id
+          }));
 
-            setCurrentPlaylist(playlist);
-            setCurrentTrack(tracks[0] || null);
-          } else {
-            throw new Error('Playlist not found');
-          }
-        } catch (err) {
-          // Fallback to default playlists
-          const playlist = DEFAULT_FOCUS_PLAYLISTS.find(p => p.id === playlistId);
-          if (playlist) {
-            setCurrentPlaylist(playlist);
-            setCurrentTrack(playlist.tracks[0] || null);
-          } else {
-            throw new Error('Playlist not found');
-          }
+          const playlist: MusicPlaylist = {
+            id: userPlaylist.id,
+            name: userPlaylist.name,
+            description: userPlaylist.description,
+            isFocusPlaylist: true,
+            tracks
+          };
+
+          setCurrentPlaylist(playlist);
+          setCurrentTrack(tracks[0] || null);
+        } else {
+          throw new Error('Playlist not found');
         }
       } else {
         // Use default playlists when not connected to Spotify
@@ -259,7 +280,7 @@ export const useMusic = (userId: string): UseMusicReturn => {
       setError('Failed to load playlist');
       setLoading(false);
     }
-  }, [spotifyClient]);
+  }, [spotifyClient, userId]);
 
   // TODO: Implement auto-play for focus sessions
   useEffect(() => {
@@ -268,10 +289,18 @@ export const useMusic = (userId: string): UseMusicReturn => {
   }, []);
 
   // TODO: Implement volume control
-  const setVolume = useCallback((volume: number) => {
-    // TODO: Implement volume control
-    console.log('Setting volume to:', volume);
-  }, []);
+  const setVolume = useCallback(async (volume: number) => {
+    try {
+      if (spotifyClient) {
+        await spotifyClient.setVolume(volume);
+        console.log('Volume set to:', volume);
+      } else {
+        console.log('Setting volume to:', volume);
+      }
+    } catch (err) {
+      console.error('Error setting volume:', err);
+    }
+  }, [spotifyClient]);
 
   // TODO: Implement shuffle and repeat modes
   const toggleShuffle = useCallback(() => {

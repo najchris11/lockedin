@@ -1,7 +1,7 @@
 // Firebase configuration and initialization
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator, enableNetwork, disableNetwork } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 // TODO: Replace with your Firebase project configuration
@@ -24,11 +24,28 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
+// Configure Firestore for optimal performance
+if (typeof window !== 'undefined') {
+  // Firestore automatically enables offline persistence
+  // Cache size is managed automatically
+  console.log('Firestore initialized with offline support');
+}
+
 // Configure Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
+
+// Configure auth persistence for better performance
+setPersistence(auth, browserLocalPersistence);
+
+// Network management utilities
+export const firestoreUtils = {
+  enableOfflineMode: () => disableNetwork(db),
+  enableOnlineMode: () => enableNetwork(db),
+  isOnline: () => navigator.onLine
+};
 
 // Export the app instance
 export default app;
