@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Check, Trash2, Edit2, Calendar, Flag } from 'lucide-react';
 import { useTodo } from '@/hooks/useTodo';
+import { useTodoLocal } from '@/hooks/useTodoLocal';
 import { Todo } from '@/types';
 
 interface TodoListProps {
@@ -13,7 +14,8 @@ interface TodoListProps {
 }
 
 export const TodoList: React.FC<TodoListProps> = ({ userId, className = '' }) => {
-  const { todos, addTodo, updateTodo, deleteTodo, toggleTodo, loading, error } = useTodo(userId);
+  // Use localStorage-based todos as fallback for better persistence
+  const { todos, addTodo, updateTodo, deleteTodo, toggleTodo, loading, error } = useTodoLocal(userId || 'demo-user');
   const [newTodoTitle, setNewTodoTitle] = useState('');
   const [newTodoDescription, setNewTodoDescription] = useState('');
   const [newTodoPriority, setNewTodoPriority] = useState<'low' | 'medium' | 'high'>('medium');
@@ -87,10 +89,12 @@ export const TodoList: React.FC<TodoListProps> = ({ userId, className = '' }) =>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700 text-sm">{error}</p>
         </div>
       )}
+      
+      
 
       {/* TODO: Implement add todo form */}
       <AnimatePresence>

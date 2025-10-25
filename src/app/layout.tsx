@@ -34,7 +34,6 @@ export default function RootLayout({
         <PomodoroProvider>
           <TimerNotificationProvider>
             {children}
-            
           </TimerNotificationProvider>
         </PomodoroProvider>
         </AuthProvider>
