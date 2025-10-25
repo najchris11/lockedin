@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, RotateCcw, SkipForward, Settings } from 'lucide-react';
-import { usePomodoro } from '@/hooks/usePomodoro';
+import { usePomodoroContext } from '@/contexts/PomodoroContext';
 import { useMusic } from '@/hooks/useMusic';
 
 interface PomodoroTimerProps {
@@ -14,23 +14,19 @@ interface PomodoroTimerProps {
 
 export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId, className = '' }) => {
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState({
-    focusDuration: 25,
-    breakDuration: 5,
-    longBreakDuration: 15,
-    longBreakInterval: 4
-  });
 
   const {
     isRunning,
     isFocus,
     timeLeft,
     sessionCount,
+    settings,
     startTimer,
     pauseTimer,
     resetTimer,
-    skipSession
-  } = usePomodoro(settings);
+    skipSession,
+    updateSettings
+  } = usePomodoroContext();
 
   const { play, pause, setPlaylist } = useMusic(userId);
 
@@ -93,10 +89,9 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId, className 
             min="1"
             max="60"
             value={settings.focusDuration}
-            onChange={(e) => setSettings(prev => ({ 
-              ...prev, 
+            onChange={(e) => updateSettings({ 
               focusDuration: parseInt(e.target.value) || 25 
-            }))}
+            })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -110,10 +105,9 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId, className 
             min="1"
             max="30"
             value={settings.breakDuration}
-            onChange={(e) => setSettings(prev => ({ 
-              ...prev, 
+            onChange={(e) => updateSettings({ 
               breakDuration: parseInt(e.target.value) || 5 
-            }))}
+            })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -127,10 +121,9 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId, className 
             min="5"
             max="60"
             value={settings.longBreakDuration}
-            onChange={(e) => setSettings(prev => ({ 
-              ...prev, 
+            onChange={(e) => updateSettings({ 
               longBreakDuration: parseInt(e.target.value) || 15 
-            }))}
+            })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -144,10 +137,9 @@ export const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId, className 
             min="2"
             max="10"
             value={settings.longBreakInterval}
-            onChange={(e) => setSettings(prev => ({ 
-              ...prev, 
+            onChange={(e) => updateSettings({ 
               longBreakInterval: parseInt(e.target.value) || 4 
-            }))}
+            })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
         </div>

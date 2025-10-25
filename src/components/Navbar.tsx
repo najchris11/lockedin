@@ -5,6 +5,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain, User, Settings, LogOut } from 'lucide-react';
 import { AuthButton } from './AuthButton';
+import { NavbarTimer } from './NavbarTimer';
 
 interface NavbarProps {
   user?: {
@@ -12,10 +13,11 @@ interface NavbarProps {
     email: string;
     photoURL?: string;
   } | null;
+  onLogout?: () => void;
   className?: string;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ user, className = '' }) => {
+export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }) => {
   return (
     <nav className={`bg-white shadow-lg border-b border-gray-200 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,6 +53,9 @@ export const Navbar: React.FC<NavbarProps> = ({ user, className = '' }) => {
             >
               Settings
             </a>
+            
+            {/* Enhanced Timer Controls */}
+            <NavbarTimer />
           </div>
 
           {/* User Menu */}
@@ -104,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, className = '' }) => {
                       </a>
                       <hr className="my-1" />
                       <button
-                        onClick={() => {/* AuthButton handles logout */}}
+                        onClick={onLogout}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
                       >
                         <LogOut className="w-4 h-4" />
@@ -142,6 +147,11 @@ export const Navbar: React.FC<NavbarProps> = ({ user, className = '' }) => {
           >
             Settings
           </a>
+          
+          {/* Mobile Timer */}
+          <div className="px-3 py-2">
+            <NavbarTimer />
+          </div>
         </div>
       </div>
     </nav>
