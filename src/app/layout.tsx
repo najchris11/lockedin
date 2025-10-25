@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PomodoroProvider } from "@/contexts/PomodoroContext";
 import { TimerNotificationProvider } from "@/components/TimerNotificationProvider";
+import { PerformanceMonitor } from "@/components/PerformanceMonitor";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
         <PomodoroProvider>
           <TimerNotificationProvider>
             {children}
+            
           </TimerNotificationProvider>
         </PomodoroProvider>
         </AuthProvider>

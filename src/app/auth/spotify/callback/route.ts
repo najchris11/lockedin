@@ -41,8 +41,10 @@ export async function GET(req: NextRequest) {
 
   data = await response.json();
   if (data.access_token) {
-    // Store token in cookies or redirect back to dashboard
+    // Store tokens in both cookies and localStorage via client-side script
     const res = NextResponse.redirect('/dashboard');
+    
+    // Store in cookies for server-side access
     res.cookies.set('spotify_access_token', data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -54,7 +56,21 @@ export async function GET(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       path: '/',
     });
-    return res;
+    
+    // Also store in localStorage via client-side script
+    const script = `
+      <script>
+        localStorage.setItem('spotify_access_token', '${data.access_token}');
+        localStorage.setItem('spotify_refresh_token', '${data.refresh_token}');
+        window.location.href = '/dashboard';
+      </script>
+    `;
+    
+    return new NextResponse(script, {
+      headers: {
+        'Content-Type': 'text/html',
+      },
+    });
   }
 
   return NextResponse.redirect('/?error=spotify_auth_failed');
