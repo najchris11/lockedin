@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     // Store token in cookies or redirect back to dashboard
     const res = NextResponse.redirect('/dashboard');
     res.cookies.set('spotify_access_token', data.access_token, {
-      httpOnly: false,
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 3600,
       path: '/',
