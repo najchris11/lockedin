@@ -102,9 +102,10 @@ export class SpotifyClient {
     const data = await response.json();
     this.accessToken = data.access_token;
     
-    // Update stored token
-    localStorage.setItem('spotify_access_token', data.access_token);
-  }
+    // Update stored token (only on client)
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem('spotify_access_token', data.access_token);
+    }
 
   // TODO: Implement playlist fetching
   async getPlaylists(): Promise<any[]> {
