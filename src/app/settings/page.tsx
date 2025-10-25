@@ -7,9 +7,11 @@ import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { User, Mail, Bell, Sun, Moon, Edit3, Save, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function SettingsPage() {
   const { user, loading } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editForm, setEditForm] = useState({
     displayName: '',
@@ -20,7 +22,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState({
     emailNotifications: true,
     pushNotifications: true,
-    darkMode: false
+    darkMode: isDarkMode
   });
   
   const router = useRouter();
@@ -60,6 +62,11 @@ export default function SettingsPage() {
       ...prev,
       [setting]: value
     }));
+    
+    if (setting === 'darkMode') {
+      toggleTheme();
+    }
+    
     // TODO: Implement settings persistence
     console.log('Setting changed:', setting, value);
   };
@@ -274,35 +281,35 @@ export default function SettingsPage() {
             <h2 className="text-xl font-semibold text-gray-900">Theme</h2>
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center gap-3">
-              {settings.darkMode ? (
-                <Moon className="w-5 h-5 text-gray-600" />
-              ) : (
-                <Sun className="w-5 h-5 text-gray-600" />
-              )}
-              <div>
-                <div className="font-medium text-gray-900">
-                  {settings.darkMode ? 'Dark Mode' : 'Light Mode'}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {settings.darkMode 
-                    ? 'Switch to light mode for a brighter interface' 
-                    : 'Switch to dark mode for easier viewing in low light'
-                  }
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
+              <div className="flex items-center gap-3">
+                {isDarkMode ? (
+                  <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                ) : (
+                  <Sun className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                )}
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-gray-100">
+                    {isDarkMode ? 'Dark Mode' : 'Light Mode'}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {isDarkMode 
+                      ? 'Switch to light mode for a brighter interface' 
+                      : 'Switch to dark mode for easier viewing in low light'
+                    }
+                  </div>
                 </div>
               </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isDarkMode}
+                  onChange={(e) => handleSettingChange('darkMode', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 dark:bg-dark-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.darkMode}
-                onChange={(e) => handleSettingChange('darkMode', e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
         </motion.div>
 
         {/* Additional Settings Section */}

@@ -3,9 +3,10 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Brain, User, Settings, LogOut } from 'lucide-react';
+import { Brain, User, Settings, LogOut, Sun, Moon } from 'lucide-react';
 import { AuthButton } from './AuthButton';
 import { NavbarTimer } from './NavbarTimer';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface NavbarProps {
   user?: {
@@ -18,8 +19,10 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }) => {
+  const { isDarkMode, toggleTheme } = useTheme();
+  
   return (
-    <nav className={`bg-white shadow-lg border-b border-gray-200 ${className}`}>
+    <nav className={`bg-white dark:bg-dark-800 shadow-lg border-b border-gray-200 dark:border-dark-700 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -30,26 +33,26 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }
             <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <Brain className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-800">LockIn</span>
+            <span className="text-xl font-bold text-gray-800 dark:text-gray-100">LockIn</span>
           </motion.div>
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-8">
             <a
               href="/dashboard"
-              className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
+              className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
             >
               Dashboard
             </a>
             <a
               href="/analytics"
-              className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
+              className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
             >
               Analytics
             </a>
             <a
               href="/settings"
-              className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
+              className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
             >
               Settings
             </a>
@@ -60,14 +63,29 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }
 
           {/* User Menu */}
           <div className="flex items-center gap-4">
+            {/* Theme Toggle */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleTheme}
+              className="p-2 rounded-lg bg-gray-100 dark:bg-dark-700 hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors"
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDarkMode ? (
+                <Sun className="w-5 h-5 text-yellow-500" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-600" />
+              )}
+            </motion.button>
+            
             {user ? (
               <div className="flex items-center gap-3">
                 {/* User Info */}
                 <div className="hidden sm:block text-right">
-                  <div className="text-sm font-medium text-gray-800">
+                  <div className="text-sm font-medium text-gray-800 dark:text-gray-100">
                     {user.displayName || 'User'}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     {user.email}
                   </div>
                 </div>
@@ -127,23 +145,23 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }
       </div>
 
       {/* Mobile Menu */}
-      <div className="md:hidden border-t border-gray-200">
+      <div className="md:hidden border-t border-gray-200 dark:border-dark-700">
         <div className="px-4 py-2 space-y-1">
           <a
             href="/dashboard"
-            className="block px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+            className="block px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           >
             Dashboard
           </a>
           <a
             href="/analytics"
-            className="block px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+            className="block px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           >
             Analytics
           </a>
           <a
             href="/settings"
-            className="block px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+            className="block px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           >
             Settings
           </a>
