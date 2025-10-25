@@ -111,7 +111,7 @@ export const TodoList: React.FC<TodoListProps> = ({ userId, className = '' }) =>
                   type="text"
                   value={newTodoTitle}
                   onChange={(e) => setNewTodoTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                   placeholder="Enter task title..."
                   required
                 />
@@ -124,7 +124,7 @@ export const TodoList: React.FC<TodoListProps> = ({ userId, className = '' }) =>
                 <textarea
                   value={newTodoDescription}
                   onChange={(e) => setNewTodoDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                   placeholder="Enter task description..."
                   rows={2}
                 />
@@ -137,7 +137,7 @@ export const TodoList: React.FC<TodoListProps> = ({ userId, className = '' }) =>
                 <select
                   value={newTodoPriority}
                   onChange={(e) => setNewTodoPriority(e.target.value as Todo['priority'])}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -197,7 +197,7 @@ export const TodoList: React.FC<TodoListProps> = ({ userId, className = '' }) =>
 
                 <div className="flex-1 min-w-0">
                   <h3 className={`font-medium ${
-                    todo.completed ? 'line-through text-gray-500' : 'text-gray-800'
+                    todo.completed ? 'line-through text-gray-500' : 'text-black'
                   }`}>
                     {todo.title}
                   </h3>

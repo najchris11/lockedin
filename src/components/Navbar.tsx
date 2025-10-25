@@ -5,6 +5,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain, User, Settings, LogOut } from 'lucide-react';
 import { AuthButton } from './AuthButton';
+import { NavbarTimer } from './NavbarTimer';
 
 interface NavbarProps {
   user?: {
@@ -17,6 +18,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }) => {
+
   return (
     <nav className={`bg-white shadow-lg border-b border-gray-200 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,6 +54,9 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }
             >
               Settings
             </a>
+            
+            {/* Enhanced Timer Controls */}
+            <NavbarTimer />
           </div>
 
           {/* User Menu */}
@@ -143,6 +148,11 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, className = '' }
           >
             Settings
           </a>
+          
+          {/* Mobile Timer */}
+          <div className="px-3 py-2">
+            <NavbarTimer />
+          </div>
         </div>
       </div>
     </nav>
