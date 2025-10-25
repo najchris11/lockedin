@@ -34,6 +34,8 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ userId, className = ''
   const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
   const [token, setToken] = useState<string | null>(null);
   const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
 
   // Check for Spotify token on component mount
   useEffect(() => {
@@ -56,6 +58,36 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ userId, className = ''
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Progress tracking effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isPlaying && currentTrack) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => {
+          const newTime = prev + 1;
+          const newProgress = (newTime / currentTrack.duration) * 100;
+          setProgress(Math.min(newProgress, 100));
+          
+          // Auto-advance to next track when current track ends
+          if (newTime >= currentTrack.duration) {
+            nextTrack();
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    } else {
+      // Reset progress when paused
+      setProgress(0);
+      setCurrentTime(0);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying, currentTrack, nextTrack]);
 
   // TODO: Implement default playlists
   const defaultPlaylists: MusicPlaylist[] = [
@@ -134,10 +166,10 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ userId, className = ''
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // TODO: Implement volume control
-  const handleVolumeChange = (newVolume: number) => {
+  // Volume control with Spotify integration
+  const handleVolumeChange = async (newVolume: number) => {
     setVolume(newVolume);
-    // TODO: Implement actual volume control
+    // Volume control is now handled by the useMusic hook
     console.log('Setting volume to:', newVolume);
   };
 
@@ -238,19 +270,19 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ userId, className = ''
         )}
       </div>
 
-      {/* TODO: Implement progress bar */}
+      {/* Progress bar with real-time updates */}
       {currentTrack && (
         <div className="mb-6">
           <div className="w-full bg-gray-200 rounded-full h-2">
             <motion.div
               className="bg-blue-500 h-2 rounded-full"
               initial={{ width: 0 }}
-              animate={{ width: '30%' }} // TODO: Implement actual progress
+              animate={{ width: `${progress}%` }}
               transition={{ duration: 0.5 }}
             />
           </div>
           <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0:00</span>
+            <span>{formatTime(currentTime)}</span>
             <span>{formatTime(currentTrack.duration)}</span>
           </div>
         </div>

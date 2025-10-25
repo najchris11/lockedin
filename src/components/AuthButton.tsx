@@ -19,11 +19,14 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // TODO: Implement Google sign-in
+  // Optimized Google sign-in with better error handling
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // Add a small delay to show loading state
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
@@ -32,7 +35,20 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
       console.log('User signed in:', user);
     } catch (error: any) {
       console.error('Sign-in error:', error);
-      setError(error.message || 'Failed to sign in');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to sign in';
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign-in cancelled';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup blocked. Please allow popups for this site.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
