@@ -1,5 +1,8 @@
 # LockIn - Productivity Focus App
 
+
+hi im riya
+
 A modern productivity web application that combines Pomodoro timers, AI-powered focus tracking, music integration, and task management to help users stay focused and achieve their goals.
 
 ## 🚀 Features
