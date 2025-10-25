@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Shuffle, Repeat, Music } from 'lucide-react';
 import { useMusic } from '@/hooks/useMusic';
 import { MusicPlaylist } from '@/types';
+import { getSpotifyAuthUrl } from '@/lib/spotify';
 
 interface MusicPlayerProps {
   userId: string;
@@ -31,6 +32,30 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ userId, className = ''
   const [showPlaylists, setShowPlaylists] = useState(false);
   const [shuffleMode, setShuffleMode] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
+  const [token, setToken] = useState<string | null>(null);
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+
+  // Check for Spotify token on component mount
+  useEffect(() => {
+    const checkSpotifyToken = () => {
+      const token = localStorage.getItem('spotify_access_token');
+      setToken(token);
+      setSpotifyConnected(!!token);
+    };
+
+    checkSpotifyToken();
+    
+    // Listen for storage changes (token updates)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'spotify_access_token') {
+        setToken(e.newValue);
+        setSpotifyConnected(!!e.newValue);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // TODO: Implement default playlists
   const defaultPlaylists: MusicPlaylist[] = [
@@ -322,16 +347,27 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ userId, className = ''
         </span>
       </div>
 
-      {/* TODO: Implement Spotify connection status */}
-      <div className="mt-6 p-3 bg-gray-50 rounded-lg">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-          <span>Spotify integration coming soon</span>
+        <div className="mt-6 p-3 bg-gray-50 rounded-lg">
+          {spotifyConnected ? (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>Connected to Spotify</span>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center gap-2 text-sm text-yellow-600">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span>Spotify integration not connected</span>
+              </div>
+              <button
+                onClick={() => window.location.href = getSpotifyAuthUrl()}
+                className="mt-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Connect Spotify
+              </button>
+            </div>
+          )}
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          Currently playing demo tracks. Connect Spotify for full functionality.
-        </p>
-      </div>
     </div>
   );
 };

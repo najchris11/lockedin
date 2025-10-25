@@ -1,7 +1,7 @@
 // Dashboard page for authenticated users
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
@@ -9,43 +9,15 @@ import { TodoList } from './components/TodoList';
 import { PomodoroTimer } from './components/PomodoroTimer';
 import { FocusTracker } from './components/FocusTracker';
 import { MusicPlayer } from './components/MusicPlayer';
-import { User } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const router = useRouter();
 
-  // TODO: Implement authentication check
-  useEffect(() => {
-    // This will be replaced with actual Firebase auth state listener
-    const checkAuth = async () => {
-      try {
-        // TODO: Check if user is authenticated
-        // For now, simulate a logged-in user
-        const mockUser: User = {
-          id: 'mock_user_id',
-          email: 'user@example.com',
-          displayName: 'Demo User',
-          photoURL: undefined,
-          createdAt: new Date()
-        };
-        
-        setUser(mockUser);
-        setLoading(false);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        router.push('/');
-      }
-    };
-
-    checkAuth();
-  }, [router]);
-
-  // TODO: Implement loading state
   if (loading) {
     return (
-      <Layout user={user} onAuthChange={setUser}>
+      <Layout user={user}>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -56,14 +28,13 @@ export default function DashboardPage() {
     );
   }
 
-  // TODO: Implement redirect if not authenticated
   if (!user) {
     router.push('/');
     return null;
   }
 
   return (
-    <Layout user={user} onAuthChange={setUser}>
+    <Layout user={user}>
       <div className="space-y-8">
         {/* Welcome Section */}
         <motion.div

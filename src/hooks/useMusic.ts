@@ -56,13 +56,22 @@ export const useMusic = (userId: string): UseMusicReturn => {
   useEffect(() => {
     const initializeSpotify = async () => {
       try {
-        // TODO: Check for existing Spotify token in localStorage
+        // Check for existing Spotify token in localStorage
         const token = localStorage.getItem('spotify_access_token');
+        const refreshToken = localStorage.getItem('spotify_refresh_token');
         
         if (token) {
-          setSpotifyClient(new SpotifyClient(token));
+          const client = new SpotifyClient(token, refreshToken || undefined);
+          setSpotifyClient(client);
+          
+          // Try to get user's playlists
+          try {
+            const playlists = await client.getPlaylists();
+            console.log('User playlists:', playlists);
+          } catch (err) {
+            console.error('Failed to fetch playlists:', err);
+          }
         } else {
-          // TODO: Redirect to Spotify auth if no token
           console.log('No Spotify token found. Redirect to:', getSpotifyAuthUrl());
         }
       } catch (err) {
@@ -74,17 +83,21 @@ export const useMusic = (userId: string): UseMusicReturn => {
     initializeSpotify();
   }, []);
 
-  // TODO: Implement play functionality
+  // Implement play functionality
   const play = useCallback(async () => {
     try {
       setError(null);
       setLoading(true);
 
-      if (spotifyClient && currentTrack) {
-        await spotifyClient.playTrack(currentTrack.spotifyId || '');
+      if (spotifyClient && currentTrack?.spotifyId) {
+        await spotifyClient.playTrack(currentTrack.spotifyId);
+        setIsPlaying(true);
+      } else if (spotifyClient) {
+        // Resume playback if no specific track
+        await spotifyClient.resumePlayback();
         setIsPlaying(true);
       } else {
-        // TODO: Implement fallback audio player for non-Spotify tracks
+        // Fallback for demo tracks
         console.log('Playing track:', currentTrack?.title);
         setIsPlaying(true);
       }
@@ -92,12 +105,12 @@ export const useMusic = (userId: string): UseMusicReturn => {
       setLoading(false);
     } catch (err) {
       console.error('Error playing track:', err);
-      setError('Failed to play track');
+      setError('Failed to play track. Make sure Spotify is open and a device is selected.');
       setLoading(false);
     }
   }, [spotifyClient, currentTrack]);
 
-  // TODO: Implement pause functionality
+  // Implement pause functionality
   const pause = useCallback(async () => {
     try {
       setError(null);
@@ -105,7 +118,7 @@ export const useMusic = (userId: string): UseMusicReturn => {
       if (spotifyClient) {
         await spotifyClient.pausePlayback();
       } else {
-        // TODO: Implement fallback pause
+        // Fallback pause
         console.log('Pausing track');
       }
 
@@ -116,7 +129,7 @@ export const useMusic = (userId: string): UseMusicReturn => {
     }
   }, [spotifyClient]);
 
-  // TODO: Implement next track functionality
+  // Implement next track functionality
   const nextTrack = useCallback(async () => {
     try {
       setError(null);
@@ -124,8 +137,19 @@ export const useMusic = (userId: string): UseMusicReturn => {
 
       if (spotifyClient) {
         await spotifyClient.nextTrack();
+        // Get updated playback state
+        const playback = await spotifyClient.getCurrentPlayback();
+        if (playback?.item) {
+          setCurrentTrack({
+            id: playback.item.id,
+            title: playback.item.name,
+            artist: playback.item.artists[0]?.name || 'Unknown Artist',
+            duration: Math.floor(playback.item.duration_ms / 1000),
+            spotifyId: playback.item.id
+          });
+        }
       } else if (currentPlaylist) {
-        // TODO: Implement playlist navigation
+        // Fallback playlist navigation
         const currentIndex = currentPlaylist.tracks.findIndex(t => t.id === currentTrack?.id);
         const nextIndex = (currentIndex + 1) % currentPlaylist.tracks.length;
         setCurrentTrack(currentPlaylist.tracks[nextIndex]);
@@ -139,7 +163,7 @@ export const useMusic = (userId: string): UseMusicReturn => {
     }
   }, [spotifyClient, currentPlaylist, currentTrack]);
 
-  // TODO: Implement previous track functionality
+  // Implement previous track functionality
   const previousTrack = useCallback(async () => {
     try {
       setError(null);
@@ -147,8 +171,19 @@ export const useMusic = (userId: string): UseMusicReturn => {
 
       if (spotifyClient) {
         await spotifyClient.previousTrack();
+        // Get updated playback state
+        const playback = await spotifyClient.getCurrentPlayback();
+        if (playback?.item) {
+          setCurrentTrack({
+            id: playback.item.id,
+            title: playback.item.name,
+            artist: playback.item.artists[0]?.name || 'Unknown Artist',
+            duration: Math.floor(playback.item.duration_ms / 1000),
+            spotifyId: playback.item.id
+          });
+        }
       } else if (currentPlaylist) {
-        // TODO: Implement playlist navigation
+        // Fallback playlist navigation
         const currentIndex = currentPlaylist.tracks.findIndex(t => t.id === currentTrack?.id);
         const prevIndex = currentIndex === 0 ? currentPlaylist.tracks.length - 1 : currentIndex - 1;
         setCurrentTrack(currentPlaylist.tracks[prevIndex]);
@@ -162,20 +197,60 @@ export const useMusic = (userId: string): UseMusicReturn => {
     }
   }, [spotifyClient, currentPlaylist, currentTrack]);
 
-  // TODO: Implement playlist selection
+  // Implement playlist selection
   const setPlaylist = useCallback(async (playlistId: string) => {
     try {
       setError(null);
       setLoading(true);
 
-      // TODO: Fetch playlist from Spotify or use default playlists
-      const playlist = DEFAULT_FOCUS_PLAYLISTS.find(p => p.id === playlistId);
-      
-      if (playlist) {
-        setCurrentPlaylist(playlist);
-        setCurrentTrack(playlist.tracks[0] || null);
+      if (spotifyClient) {
+        // Try to fetch user's playlists first
+        try {
+          const playlists = await spotifyClient.getPlaylists();
+          const userPlaylist = playlists.find(p => p.id === playlistId);
+          
+          if (userPlaylist) {
+            // Convert Spotify playlist to our format
+            const tracks = userPlaylist.tracks.items.map((item: any) => ({
+              id: item.track.id,
+              title: item.track.name,
+              artist: item.track.artists[0]?.name || 'Unknown Artist',
+              duration: Math.floor(item.track.duration_ms / 1000),
+              spotifyId: item.track.id
+            }));
+
+            const playlist: MusicPlaylist = {
+              id: userPlaylist.id,
+              name: userPlaylist.name,
+              description: userPlaylist.description,
+              isFocusPlaylist: true,
+              tracks
+            };
+
+            setCurrentPlaylist(playlist);
+            setCurrentTrack(tracks[0] || null);
+          } else {
+            throw new Error('Playlist not found');
+          }
+        } catch (err) {
+          // Fallback to default playlists
+          const playlist = DEFAULT_FOCUS_PLAYLISTS.find(p => p.id === playlistId);
+          if (playlist) {
+            setCurrentPlaylist(playlist);
+            setCurrentTrack(playlist.tracks[0] || null);
+          } else {
+            throw new Error('Playlist not found');
+          }
+        }
       } else {
-        throw new Error('Playlist not found');
+        // Use default playlists when not connected to Spotify
+        const playlist = DEFAULT_FOCUS_PLAYLISTS.find(p => p.id === playlistId);
+        if (playlist) {
+          setCurrentPlaylist(playlist);
+          setCurrentTrack(playlist.tracks[0] || null);
+        } else {
+          throw new Error('Playlist not found');
+        }
       }
 
       setLoading(false);
@@ -184,7 +259,7 @@ export const useMusic = (userId: string): UseMusicReturn => {
       setError('Failed to load playlist');
       setLoading(false);
     }
-  }, []);
+  }, [spotifyClient]);
 
   // TODO: Implement auto-play for focus sessions
   useEffect(() => {

@@ -20,7 +20,7 @@ import {
   Eye
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
-import { User } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 import { usePomodoroContext } from '@/contexts/PomodoroContext';
 import { useTodo } from '@/hooks/useTodo';
 import { useFocus } from '@/hooks/useFocus';
@@ -35,8 +35,7 @@ interface SessionHistory {
 }
 
 export default function AnalyticsPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const [sessionHistory, setSessionHistory] = useState<SessionHistory[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('week');
   const router = useRouter();
@@ -46,28 +45,12 @@ export default function AnalyticsPage() {
   const { todos, loading: todosLoading } = useTodo(user?.id || '');
   const { focusScore, metrics, isTracking } = useFocus(user?.id || '');
 
-  // Mock authentication check
+  // Redirect if not authenticated
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const mockUser: User = {
-          id: 'mock_user_id',
-          email: 'user@example.com',
-          displayName: 'Demo User',
-          photoURL: undefined,
-          createdAt: new Date()
-        };
-        
-        setUser(mockUser);
-        setLoading(false);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        router.push('/');
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [loading, user, router]);
 
   // Load session history from localStorage
   useEffect(() => {
@@ -178,7 +161,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <Layout user={user} onAuthChange={setUser}>
+      <Layout user={user}>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -208,14 +191,14 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <Layout user={user} onAuthChange={setUser}>
+    <Layout user={user}>
       <div className="space-y-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white"
+          className="bg-linear-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -348,7 +331,7 @@ export default function AnalyticsPage() {
                       initial={{ height: 0 }}
                       animate={{ height: `${Math.max(trend.score, 5)}px` }}
                       transition={{ duration: 0.8, delay: index * 0.1 }}
-                      className="w-full bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg"
+                      className="w-full bg-linear-to-t from-blue-500 to-blue-400 rounded-t-lg"
                     />
                   </div>
                   <div className="mt-2 text-xs text-gray-600">
@@ -406,7 +389,7 @@ export default function AnalyticsPage() {
                   initial={{ width: 0 }}
                   animate={{ width: `${analytics.completionRate}%` }}
                   transition={{ duration: 1, delay: 0.5 }}
-                  className="bg-gradient-to-r from-green-500 to-green-400 h-3 rounded-full"
+                  className="bg-linear-to-r from-green-500 to-green-400 h-3 rounded-full"
                 />
               </div>
             </div>
@@ -506,7 +489,7 @@ export default function AnalyticsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-6"
+          className="bg-linear-to-r from-gray-50 to-blue-50 rounded-lg p-6"
         >
           <h2 className="text-2xl font-bold text-gray-800 mb-4">📈 {selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)}ly Summary</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

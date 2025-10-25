@@ -6,22 +6,16 @@ import { motion } from 'framer-motion';
 import { signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { LogIn, LogOut, Loader } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthButtonProps {
-  user?: {
-    displayName: string;
-    email: string;
-    photoURL?: string;
-  } | null;
-  onAuthChange?: (user: any) => void;
   className?: string;
 }
 
 export const AuthButton: React.FC<AuthButtonProps> = ({ 
-  user, 
-  onAuthChange, 
   className = '' 
 }) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,12 +28,8 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
-      // TODO: Store user data in Firestore
+      // User data will be automatically stored via AuthContext
       console.log('User signed in:', user);
-      
-      if (onAuthChange) {
-        onAuthChange(user);
-      }
     } catch (error: any) {
       console.error('Sign-in error:', error);
       setError(error.message || 'Failed to sign in');
@@ -55,10 +45,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
       setError(null);
       
       await signOut(auth);
-      
-      if (onAuthChange) {
-        onAuthChange(null);
-      }
+      // Auth state will be automatically updated via AuthContext
     } catch (error: any) {
       console.error('Sign-out error:', error);
       setError(error.message || 'Failed to sign out');

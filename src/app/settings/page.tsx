@@ -6,11 +6,10 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { User, Mail, Bell, Sun, Moon, Edit3, Save, X } from 'lucide-react';
-import { User as UserType } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<UserType | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useAuth();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editForm, setEditForm] = useState({
     displayName: '',
@@ -26,34 +25,17 @@ export default function SettingsPage() {
   
   const router = useRouter();
 
-  // TODO: Implement authentication check
+  // Redirect if not authenticated
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // TODO: Check if user is authenticated
-        // For now, simulate a logged-in user
-        const mockUser: UserType = {
-          id: 'mock_user_id',
-          email: 'user@example.com',
-          displayName: 'Demo User',
-          photoURL: undefined,
-          createdAt: new Date()
-        };
-        
-        setUser(mockUser);
-        setEditForm({
-          displayName: mockUser.displayName || '',
-          email: mockUser.email || ''
-        });
-        setLoading(false);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        router.push('/');
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+    if (!loading && !user) {
+      router.push('/');
+    } else if (user) {
+      setEditForm({
+        displayName: user.displayName || '',
+        email: user.email || ''
+      });
+    }
+  }, [loading, user, router]);
 
   const handleEditProfile = () => {
     setIsEditingProfile(true);
@@ -84,7 +66,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <Layout user={user} onAuthChange={setUser}>
+      <Layout user={user}>
         <div className="flex items-center justify-center min-h-96">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -101,7 +83,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <Layout user={user} onAuthChange={setUser}>
+    <Layout user={user}>
       <div className="space-y-8">
         {/* Page Title */}
         <motion.div
