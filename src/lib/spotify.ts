@@ -7,7 +7,6 @@ export interface SpotifyConfig {
   scopes: string[];
 }
 
-// TODO: Get these from Spotify Developer Dashboard
 const spotifyConfig: SpotifyConfig = {
   clientId: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || "your-spotify-client-id",
   redirectUri: process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI || "http://localhost:3000/auth/spotify/callback",
@@ -85,7 +84,3 @@ export class SpotifyClient {
     throw new Error('Not implemented');
   }
 }
-
-// TODO: Set up environment variables in .env.local:
-// NEXT_PUBLIC_SPOTIFY_CLIENT_ID=your_spotify_client_id
-// NEXT_PUBLIC_SPOTIFY_REDIRECT_URI=http://localhost:3000/auth/spotify/callback

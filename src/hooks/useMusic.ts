@@ -168,7 +168,6 @@ export const useMusic = (userId: string): UseMusicReturn => {
       setError(null);
       setLoading(true);
 
-      // TODO: Fetch playlist from Spotify or use default playlists
       const playlist = DEFAULT_FOCUS_PLAYLISTS.find(p => p.id === playlistId);
       
       if (playlist) {
