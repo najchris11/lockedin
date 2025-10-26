@@ -35,7 +35,7 @@ export default function RootLayout({
         <PomodoroProvider>
           <TimerNotificationProvider>
             {children}
-            <PerformanceMonitor />
+            
           </TimerNotificationProvider>
         </PomodoroProvider>
         </AuthProvider>
