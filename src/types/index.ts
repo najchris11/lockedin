@@ -126,11 +126,17 @@ export interface UseMusicReturn {
   isPlaying: boolean;
   currentTrack: MusicTrack | null;
   currentPlaylist: MusicPlaylist | null;
-  play: () => void;
-  pause: () => void;
-  nextTrack: () => void;
-  previousTrack: () => void;
-  setPlaylist: (playlistId: string) => void;
+  play: () => Promise<void>;
+  pause: () => Promise<void>;
+  nextTrack: () => Promise<void>;
+  previousTrack: () => Promise<void>;
+  setPlaylist: (playlistId: string) => Promise<void>;
+  startFocusMusic: () => Promise<void>;
+  startBreakMusic: () => Promise<void>;
+  stopMusic: () => Promise<void>;
+  setVolume: (volume: number) => Promise<void>;
+  toggleShuffle: () => void;
+  toggleRepeat: () => void;
   loading: boolean;
   error: string | null;
 }

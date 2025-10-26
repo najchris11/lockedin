@@ -3,8 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PomodoroProvider } from "@/contexts/PomodoroContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { TimerNotificationProvider } from "@/components/TimerNotificationProvider";
 import { PerformanceMonitor } from "@/components/PerformanceMonitor";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,14 +33,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-        <PomodoroProvider>
-          <TimerNotificationProvider>
-            {children}
-            
-          </TimerNotificationProvider>
-        </PomodoroProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <ThemeProvider>
+            <AuthProvider>
+              <PomodoroProvider>
+                <TimerNotificationProvider>
+                  {children}
+                  <PerformanceMonitor />
+                </TimerNotificationProvider>
+              </PomodoroProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

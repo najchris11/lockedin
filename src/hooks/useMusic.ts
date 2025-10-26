@@ -306,6 +306,52 @@ export const useMusic = (userId: string): UseMusicReturn => {
     }
   }, [spotifyClient, userId]);
 
+  // Auto-play for focus sessions
+  const startFocusMusic = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // Set focus playlist and start playing
+      await setPlaylist('classical_focus');
+      await play();
+      
+      console.log('Focus music started');
+    } catch (err) {
+      console.error('Failed to start focus music:', err);
+      setError('Failed to start focus music');
+    } finally {
+      setLoading(false);
+    }
+  }, [setPlaylist, play]);
+
+  const startBreakMusic = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // Set break playlist and start playing
+      await setPlaylist('ambient_focus');
+      await play();
+      
+      console.log('Break music started');
+    } catch (err) {
+      console.error('Failed to start break music:', err);
+      setError('Failed to start break music');
+    } finally {
+      setLoading(false);
+    }
+  }, [setPlaylist, play]);
+
+  const stopMusic = useCallback(async () => {
+    try {
+      await pause();
+      console.log('Music stopped');
+    } catch (err) {
+      console.error('Failed to stop music:', err);
+    }
+  }, [pause]);
+
   // Auto-load classical focus playlist when Spotify client is ready
   useEffect(() => {
     if (spotifyClient && !currentPlaylist) {
@@ -314,12 +360,6 @@ export const useMusic = (userId: string): UseMusicReturn => {
       });
     }
   }, [spotifyClient, currentPlaylist, setPlaylist]);
-
-  // TODO: Implement auto-play for focus sessions
-  useEffect(() => {
-    // This will be called when a focus session starts
-    // TODO: Integrate with Pomodoro hook to auto-play focus music
-  }, []);
 
   // TODO: Implement volume control
   const setVolume = useCallback(async (volume: number) => {
@@ -355,6 +395,12 @@ export const useMusic = (userId: string): UseMusicReturn => {
     nextTrack,
     previousTrack,
     setPlaylist,
+    startFocusMusic,
+    startBreakMusic,
+    stopMusic,
+    setVolume,
+    toggleShuffle,
+    toggleRepeat,
     loading,
     error
   };
