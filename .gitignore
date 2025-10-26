@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cloud functions (separate deployment)
+cloud-functions/node_modules
+cloud-functions/.env
+cloud-functions/.env.local
+cloud-functions/lib/
+cloud-functions/.gcloudignore

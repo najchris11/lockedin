@@ -10,43 +10,24 @@ const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for Spotify data
 // TODO: Implement default focus playlists
 const DEFAULT_FOCUS_PLAYLISTS: MusicPlaylist[] = [
   {
-    id: 'focus_classical',
+    id: 'classical_focus',
     name: 'Classical Focus',
     description: 'Instrumental classical music for deep focus',
     isFocusPlaylist: true,
-    tracks: [
-      {
-        id: 'track_1',
-        title: 'Piano Sonata No. 14',
-        artist: 'Ludwig van Beethoven',
-        duration: 180,
-        spotifyId: 'placeholder_id_1'
-      },
-      {
-        id: 'track_2',
-        title: 'The Four Seasons - Spring',
-        artist: 'Antonio Vivaldi',
-        duration: 240,
-        spotifyId: 'placeholder_id_2'
-      }
-    ]
+    tracks: [] // Will be populated from Spotify
   },
   {
-    id: 'focus_ambient',
+    id: 'ambient_focus',
     name: 'Ambient Focus',
     description: 'Calm ambient sounds for concentration',
     isFocusPlaylist: true,
-    tracks: [
-      {
-        id: 'track_3',
-        title: 'Rain Sounds',
-        artist: 'Nature Sounds',
-        duration: 600,
-        spotifyId: 'placeholder_id_3'
-      }
-    ]
+    tracks: [] // Will be populated from Spotify
   }
 ];
+
+// Real Spotify playlist IDs for focus music
+const CLASSICAL_FOCUS_PLAYLIST_ID = '1uf9fvAmETjGPskBf5Rtzr';
+const AMBIENT_FOCUS_PLAYLIST_ID = '4z8RdRm6ITzU3mTZhr4RbB';
 
 export const useMusic = (userId: string): UseMusicReturn => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -87,6 +68,8 @@ export const useMusic = (userId: string): UseMusicReturn => {
               spotifyCache.set(cacheKey, { data: playlists, timestamp: now });
               console.log('User playlists:', playlists);
             }
+            
+            // Note: Auto-loading playlist will be handled separately to avoid dependency issues
           } catch (err) {
             console.error('Failed to fetch playlists:', err);
           }
@@ -225,24 +208,26 @@ export const useMusic = (userId: string): UseMusicReturn => {
       setLoading(true);
 
       if (spotifyClient) {
-        // Check cache first
-        const cacheKey = `playlists_${userId}`;
-        const cached = spotifyCache.get(cacheKey);
-        const now = Date.now();
-        
-        let playlists;
-        if (cached && (now - cached.timestamp) < CACHE_DURATION) {
-          playlists = cached.data;
-        } else {
-          playlists = await spotifyClient.getPlaylists();
-          spotifyCache.set(cacheKey, { data: playlists, timestamp: now });
-        }
+        // Handle focus playlists specifically
+        if (playlistId === 'classical_focus' || playlistId === 'ambient_focus') {
+          const spotifyPlaylistId = playlistId === 'classical_focus' 
+            ? CLASSICAL_FOCUS_PLAYLIST_ID 
+            : AMBIENT_FOCUS_PLAYLIST_ID;
+            
+          const cacheKey = `playlist_${spotifyPlaylistId}`;
+          const cached = spotifyCache.get(cacheKey);
+          const now = Date.now();
+          
+          let playlistData;
+          if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+            playlistData = cached.data;
+          } else {
+            playlistData = await spotifyClient.getPlaylist(spotifyPlaylistId);
+            spotifyCache.set(cacheKey, { data: playlistData, timestamp: now });
+          }
 
-        const userPlaylist = playlists.find((p: any) => p.id === playlistId);
-        
-        if (userPlaylist) {
           // Convert Spotify playlist to our format
-          const tracks = userPlaylist.tracks.items.map((item: any) => ({
+          const tracks = playlistData.tracks.items.map((item: any) => ({
             id: item.track.id,
             title: item.track.name,
             artist: item.track.artists[0]?.name || 'Unknown Artist',
@@ -251,9 +236,11 @@ export const useMusic = (userId: string): UseMusicReturn => {
           }));
 
           const playlist: MusicPlaylist = {
-            id: userPlaylist.id,
-            name: userPlaylist.name,
-            description: userPlaylist.description,
+            id: playlistId,
+            name: playlistData.name,
+            description: playlistData.description || (playlistId === 'classical_focus' 
+              ? 'Instrumental classical music for deep focus' 
+              : 'Calm ambient sounds for concentration'),
             isFocusPlaylist: true,
             tracks
           };
@@ -261,7 +248,44 @@ export const useMusic = (userId: string): UseMusicReturn => {
           setCurrentPlaylist(playlist);
           setCurrentTrack(tracks[0] || null);
         } else {
-          throw new Error('Playlist not found');
+          // Handle user's own playlists
+          const cacheKey = `playlists_${userId}`;
+          const cached = spotifyCache.get(cacheKey);
+          const now = Date.now();
+          
+          let playlists;
+          if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+            playlists = cached.data;
+          } else {
+            playlists = await spotifyClient.getPlaylists();
+            spotifyCache.set(cacheKey, { data: playlists, timestamp: now });
+          }
+
+          const userPlaylist = playlists.find((p: any) => p.id === playlistId);
+          
+          if (userPlaylist) {
+            // Convert Spotify playlist to our format
+            const tracks = userPlaylist.tracks.items.map((item: any) => ({
+              id: item.track.id,
+              title: item.track.name,
+              artist: item.track.artists[0]?.name || 'Unknown Artist',
+              duration: Math.floor(item.track.duration_ms / 1000),
+              spotifyId: item.track.id
+            }));
+
+            const playlist: MusicPlaylist = {
+              id: userPlaylist.id,
+              name: userPlaylist.name,
+              description: userPlaylist.description,
+              isFocusPlaylist: true,
+              tracks
+            };
+
+            setCurrentPlaylist(playlist);
+            setCurrentTrack(tracks[0] || null);
+          } else {
+            throw new Error('Playlist not found');
+          }
         }
       } else {
         // Use default playlists when not connected to Spotify
@@ -282,11 +306,60 @@ export const useMusic = (userId: string): UseMusicReturn => {
     }
   }, [spotifyClient, userId]);
 
-  // TODO: Implement auto-play for focus sessions
+  // Auto-play for focus sessions
+  const startFocusMusic = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // Set focus playlist and start playing
+      await setPlaylist('classical_focus');
+      await play();
+      
+      console.log('Focus music started');
+    } catch (err) {
+      console.error('Failed to start focus music:', err);
+      setError('Failed to start focus music');
+    } finally {
+      setLoading(false);
+    }
+  }, [setPlaylist, play]);
+
+  const startBreakMusic = useCallback(async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // Set break playlist and start playing
+      await setPlaylist('ambient_focus');
+      await play();
+      
+      console.log('Break music started');
+    } catch (err) {
+      console.error('Failed to start break music:', err);
+      setError('Failed to start break music');
+    } finally {
+      setLoading(false);
+    }
+  }, [setPlaylist, play]);
+
+  const stopMusic = useCallback(async () => {
+    try {
+      await pause();
+      console.log('Music stopped');
+    } catch (err) {
+      console.error('Failed to stop music:', err);
+    }
+  }, [pause]);
+
+  // Auto-load classical focus playlist when Spotify client is ready
   useEffect(() => {
-    // This will be called when a focus session starts
-    // TODO: Integrate with Pomodoro hook to auto-play focus music
-  }, []);
+    if (spotifyClient && !currentPlaylist) {
+      setPlaylist('classical_focus').catch(err => {
+        console.error('Failed to auto-load classical focus playlist:', err);
+      });
+    }
+  }, [spotifyClient, currentPlaylist, setPlaylist]);
 
   // TODO: Implement volume control
   const setVolume = useCallback(async (volume: number) => {
@@ -322,6 +395,12 @@ export const useMusic = (userId: string): UseMusicReturn => {
     nextTrack,
     previousTrack,
     setPlaylist,
+    startFocusMusic,
+    startBreakMusic,
+    stopMusic,
+    setVolume,
+    toggleShuffle,
+    toggleRepeat,
     loading,
     error
   };

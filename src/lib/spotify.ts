@@ -99,20 +99,12 @@ export class SpotifyClient {
       }),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to refresh token');
-    }
-
     const data = await response.json();
     this.accessToken = data.access_token;
     
-    // Update stored tokens (only on client)
+    // Update stored token (only on client)
     if (typeof window !== "undefined" && window.localStorage) {
       localStorage.setItem('spotify_access_token', data.access_token);
-      if (data.refresh_token) {
-        localStorage.setItem('spotify_refresh_token', data.refresh_token);
-        this.refreshToken = data.refresh_token;
-      }
     }
   }
 
@@ -120,6 +112,11 @@ export class SpotifyClient {
   async getPlaylists(): Promise<any[]> {
     const data = await this.makeRequest('/me/playlists');
     return data.items;
+  }
+
+  // Fetch a specific playlist by ID
+  async getPlaylist(playlistId: string): Promise<any> {
+    return this.makeRequest(`/playlists/${playlistId}`);
   }
 
   // TODO: Implement track playback
@@ -173,3 +170,5 @@ export class SpotifyClient {
     });
   }
 }
+
+

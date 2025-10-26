@@ -89,73 +89,21 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ userId, className = ''
     };
   }, [isPlaying, currentTrack, nextTrack]);
 
-  // TODO: Implement default playlists
+  // Default playlists - now using real Spotify playlists
   const defaultPlaylists: MusicPlaylist[] = [
     {
-      id: 'focus_classical',
+      id: 'classical_focus',
       name: 'Classical Focus',
       description: 'Instrumental classical music for deep focus',
       isFocusPlaylist: true,
-      tracks: [
-        {
-          id: 'track_1',
-          title: 'Piano Sonata No. 14 "Moonlight"',
-          artist: 'Ludwig van Beethoven',
-          duration: 180,
-          spotifyId: 'placeholder_id_1'
-        },
-        {
-          id: 'track_2',
-          title: 'The Four Seasons - Spring',
-          artist: 'Antonio Vivaldi',
-          duration: 240,
-          spotifyId: 'placeholder_id_2'
-        },
-        {
-          id: 'track_3',
-          title: 'Clair de Lune',
-          artist: 'Claude Debussy',
-          duration: 300,
-          spotifyId: 'placeholder_id_3'
-        }
-      ]
+      tracks: [] // Will be loaded from Spotify
     },
     {
-      id: 'focus_ambient',
+      id: 'ambient_focus',
       name: 'Ambient Focus',
       description: 'Calm ambient sounds for concentration',
       isFocusPlaylist: true,
-      tracks: [
-        {
-          id: 'track_4',
-          title: 'Rain Sounds',
-          artist: 'Nature Sounds',
-          duration: 600,
-          spotifyId: 'placeholder_id_4'
-        },
-        {
-          id: 'track_5',
-          title: 'Ocean Waves',
-          artist: 'Relaxing Sounds',
-          duration: 480,
-          spotifyId: 'placeholder_id_5'
-        }
-      ]
-    },
-    {
-      id: 'focus_electronic',
-      name: 'Electronic Focus',
-      description: 'Minimal electronic music for productivity',
-      isFocusPlaylist: true,
-      tracks: [
-        {
-          id: 'track_6',
-          title: 'Deep Focus',
-          artist: 'Electronic Artist',
-          duration: 360,
-          spotifyId: 'placeholder_id_6'
-        }
-      ]
+      tracks: [] // Will be loaded from Spotify
     }
   ];
 
@@ -225,10 +173,19 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({ userId, className = ''
                             : 'hover:bg-gray-100'
                         }`}
                       >
-                        <div className="font-medium">{playlist.name}</div>
-                        <div className="text-sm text-gray-500">{playlist.description}</div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          {playlist.tracks.length} tracks
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            playlist.id === 'classical_focus' 
+                              ? 'bg-purple-500' 
+                              : 'bg-green-500'
+                          }`}></div>
+                          <div className="font-medium">{playlist.name}</div>
+                        </div>
+                        <div className="text-sm text-gray-500 ml-5">{playlist.description}</div>
+                        <div className="text-xs text-gray-400 mt-1 ml-5">
+                          {playlist.tracks.length > 0 
+                            ? `${playlist.tracks.length} tracks` 
+                            : 'Loading tracks...'}
                         </div>
                       </button>
                     ))}

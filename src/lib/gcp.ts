@@ -196,6 +196,3 @@ export const exportAnalyticsData = async (userId: string, format: 'csv' | 'json'
   return response.data.downloadUrl;
 };
 
-// TODO: Set up environment variables in .env.local:
-// NEXT_PUBLIC_GCP_PROJECT_ID=your_gcp_project_id
-// NEXT_PUBLIC_GCP_REGION=us-central1

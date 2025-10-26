@@ -22,7 +22,7 @@ import {
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePomodoroContext } from '@/contexts/PomodoroContext';
-import { useTodo } from '@/hooks/useTodo';
+import { useTodoLocal } from '@/hooks/useTodoLocal';
 import { useFocus } from '@/hooks/useFocus';
 
 interface SessionHistory {
@@ -42,7 +42,7 @@ export default function AnalyticsPage() {
 
   // Get data from existing hooks
   const pomodoroContext = usePomodoroContext();
-  const { todos, loading: todosLoading } = useTodo(user?.id || '');
+  const { todos, loading: todosLoading } = useTodoLocal(user?.id || 'demo-user');
   const { focusScore, metrics, isTracking } = useFocus(user?.id || '');
 
   // Redirect if not authenticated

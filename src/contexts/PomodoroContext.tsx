@@ -3,6 +3,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { PomodoroSession } from '@/types';
 import { storePomodoroSession } from '@/lib/gcp';
+import { useNotifications } from '@/lib/notifications';
+import { useMusic } from '@/hooks/useMusic';
+import { useSessionHistory } from '@/hooks/useSessionHistory';
 
 interface PomodoroSettings {
   focusDuration: number; // in minutes
@@ -41,6 +44,9 @@ interface PomodoroProviderProps {
 }
 
 export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) => {
+  const { showTimerNotification } = useNotifications();
+  const { startFocusMusic, startBreakMusic, stopMusic } = useMusic('current_user'); // TODO: Get actual user ID
+  const { addSession } = useSessionHistory('current_user'); // TODO: Get actual user ID
   const [state, setState] = useState<PomodoroState>(() => {
     // Try to load from localStorage on initialization
     if (typeof window !== 'undefined') {
@@ -112,7 +118,7 @@ export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) 
     });
   }, [saveState]);
 
-  const startTimer = useCallback(() => {
+  const startTimer = useCallback(async () => {
     if (!state.isRunning) {
       // Clear any existing interval first
       if (intervalRef.current) {
@@ -122,8 +128,15 @@ export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) 
       
       updateState({ isRunning: true });
       startTimeRef.current = new Date();
+      
+      // Start appropriate music based on session type
+      if (state.isFocus) {
+        await startFocusMusic();
+      } else {
+        await startBreakMusic();
+      }
     }
-  }, [state.isRunning, updateState]);
+  }, [state.isRunning, state.isFocus, updateState, startFocusMusic, startBreakMusic]);
 
   const pauseTimer = useCallback(() => {
     if (state.isRunning) {
@@ -172,12 +185,11 @@ export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) 
       intervalRef.current = null;
     }
 
-    // Store session data to GCP
+    // Store session data
     if (startTimeRef.current) {
-      const session: PomodoroSession = {
-        id: `session_${Date.now()}`,
+      const sessionData = {
         userId: 'current_user', // TODO: Get from auth context
-        type: state.isFocus ? 'focus' : 'break',
+        type: (state.isFocus ? 'focus' : 'break') as 'focus' | 'break',
         duration: state.isFocus ? state.settings.focusDuration : state.settings.breakDuration,
         completed: true,
         startTime: startTimeRef.current,
@@ -186,6 +198,14 @@ export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) 
       };
 
       try {
+        // Store in Firestore via session history hook
+        await addSession(sessionData);
+        
+        // Also store in GCP for analytics
+        const session: PomodoroSession = {
+          id: `session_${Date.now()}`,
+          ...sessionData
+        };
         await storePomodoroSession(session);
       } catch (error) {
         console.error('Failed to store session:', error);
@@ -201,8 +221,21 @@ export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) 
         sessionCount: state.sessionCount + 1
       });
       
-      // TODO: Trigger break notification
-      // TODO: Start break music playlist
+      // Show focus completion notification
+      showTimerNotification('focus-end');
+      
+      // Stop focus music and start break music
+      await stopMusic();
+      
+      // Determine break type and show appropriate notification
+      const shouldLongBreak = state.sessionCount > 0 && state.sessionCount % state.settings.longBreakInterval === 0;
+      if (shouldLongBreak) {
+        showTimerNotification('long-break-start');
+        await startBreakMusic(); // Start break music
+      } else {
+        showTimerNotification('break-start');
+        await startBreakMusic(); // Start break music
+      }
     } else {
       // Break completed, start focus session
       const shouldLongBreak = state.sessionCount > 0 && state.sessionCount % state.settings.longBreakInterval === 0;
@@ -213,8 +246,19 @@ export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) 
         timeLeft: breakDuration * 60
       });
       
-      // TODO: Trigger focus notification
-      // TODO: Start focus music playlist
+      // Show break completion notification
+      if (shouldLongBreak) {
+        showTimerNotification('long-break-end');
+      } else {
+        showTimerNotification('break-end');
+      }
+      
+      // Stop break music and start focus music
+      await stopMusic();
+      await startFocusMusic();
+      
+      // Show focus start notification
+      showTimerNotification('focus-start');
     }
   }, [state.isFocus, state.settings, state.sessionCount, updateState]);
 
