@@ -62,15 +62,20 @@ class NotificationService {
     }
 
     try {
-      const notification = new Notification(options.title, {
+      const notificationOptions: any = {
         body: options.body,
         icon: options.icon || '/favicon.ico',
         badge: options.badge || '/favicon.ico',
         tag: options.tag,
         requireInteraction: options.requireInteraction || false,
-        silent: options.silent || false,
-        actions: options.actions || []
-      });
+        silent: options.silent || false
+      };
+      
+      if (options.actions && options.actions.length > 0) {
+        notificationOptions.actions = options.actions;
+      }
+      
+      const notification = new Notification(options.title, notificationOptions);
 
       // Auto-close after 5 seconds unless requireInteraction is true
       if (!options.requireInteraction) {
@@ -78,6 +83,8 @@ class NotificationService {
           notification.close();
         }, 5000);
       }
+
+      return notification;
     } catch (error) {
       console.error('Failed to show notification:', error);
       return null;

@@ -189,7 +189,7 @@ export const PomodoroProvider: React.FC<PomodoroProviderProps> = ({ children }) 
     if (startTimeRef.current) {
       const sessionData = {
         userId: 'current_user', // TODO: Get from auth context
-        type: state.isFocus ? 'focus' : 'break',
+        type: (state.isFocus ? 'focus' : 'break') as 'focus' | 'break',
         duration: state.isFocus ? state.settings.focusDuration : state.settings.breakDuration,
         completed: true,
         startTime: startTimeRef.current,

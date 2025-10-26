@@ -146,7 +146,7 @@ export const useSessionHistory = (userId: string): UseSessionHistoryReturn => {
     const sessionsThisWeek = sessionsData.filter(s => s.startTime >= oneWeekAgo).length;
     const sessionsThisMonth = sessionsData.filter(s => s.startTime >= oneMonthAgo).length;
     
-    const focusScores = focusSessions.map(s => s.focusScore).filter(score => score > 0);
+    const focusScores = focusSessions.map(s => s.focusScore).filter((score): score is number => score !== undefined && score > 0);
     const averageFocusScore = focusScores.length > 0 
       ? focusScores.reduce((sum, score) => sum + score, 0) / focusScores.length 
       : 0;
@@ -305,7 +305,7 @@ export const useSessionHistory = (userId: string): UseSessionHistoryReturn => {
           if (session.type === 'focus' && session.completed) {
             dailyStatsMap[dateKey].sessionsCompleted++;
             dailyStatsMap[dateKey].focusTime += session.duration;
-            if (session.focusScore > 0) {
+            if (session.focusScore !== undefined && session.focusScore > 0) {
               dailyStatsMap[dateKey].averageFocusScore = 
                 (dailyStatsMap[dateKey].averageFocusScore + session.focusScore) / 2;
             }
@@ -349,7 +349,7 @@ export const useSessionHistory = (userId: string): UseSessionHistoryReturn => {
         if (session.type === 'focus' && session.completed) {
           weeklyStatsMap[weekKey].totalSessions++;
           weeklyStatsMap[weekKey].totalFocusTime += session.duration;
-          if (session.focusScore > 0) {
+          if (session.focusScore !== undefined && session.focusScore > 0) {
             weeklyStatsMap[weekKey].averageFocusScore = 
               (weeklyStatsMap[weekKey].averageFocusScore + session.focusScore) / 2;
           }
@@ -381,7 +381,7 @@ export const useSessionHistory = (userId: string): UseSessionHistoryReturn => {
             session.type,
             session.duration.toString(),
             session.completed.toString(),
-            session.focusScore.toString()
+            (session.focusScore ?? 0).toString()
           ];
           csvRows.push(row.join(','));
         });

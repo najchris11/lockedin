@@ -330,7 +330,7 @@ export const SessionHistory: React.FC<SessionHistoryProps> = ({ userId, classNam
                 <div className="font-semibold text-gray-900 dark:text-gray-100">
                   {session.duration} min
                 </div>
-                {session.focusScore > 0 && (
+                {session.focusScore !== undefined && session.focusScore > 0 && (
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     {Math.round(session.focusScore)}% focus
                   </div>
