@@ -122,6 +122,11 @@ export class SpotifyClient {
     return data.items;
   }
 
+  // Fetch a specific playlist by ID
+  async getPlaylist(playlistId: string): Promise<any> {
+    return this.makeRequest(`/playlists/${playlistId}`);
+  }
+
   // TODO: Implement track playback
   async playTrack(trackId: string): Promise<void> {
     await this.makeRequest('/me/player/play', {
